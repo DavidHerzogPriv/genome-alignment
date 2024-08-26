@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Diff Highlighter</title>
+    <style>
+        /* Modern Font and Base Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #444;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* Form Styling */
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input[type="number"] {
+            max-width: 100px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Diff Result Styling */
+        h2 {
+            text-align: center;
+            font-size: 20px;
+            color: #444;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        #diffResult {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap; /* Ensure that whitespace is respected */
+            overflow-x: auto; /* Add horizontal scrolling if needed */
+            overflow-y: auto; /* Add vertical scrolling if needed */
+            max-height: 70vh; /* Limit the height to 70% of the viewport */
+        }
+
+        .match {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .diff {
+            background-color: #f8d7da;
+            color: #721c24;
+            text-decoration: line-through;
+        }
+
+        .diff-line {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            form,
+            #diffResult {
+                padding: 15px;
+            }
+
+            h1, h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Submit Your Data</h1>
+
+<form id="dataForm" enctype="multipart/form-data">
+    <!-- File input -->
+    <label for="fileInput">Select a file:</label>
+    <input type="file" id="fileInput" name="file" required>
+
+    <!-- Text input (multiline) -->
+    <label for="pattern">Enter your text:</label>
+    <textarea id="pattern" name="pattern" rows="10" cols="50" required></textarea>
+
+    <!-- Percentage selector -->
+    <label for="percentage">Select a percentage:</label>
+    <input type="number" id="percentage" name="percentage" min="0" max="100" value="0" required>
+
+    <!-- Submit button -->
+    <button type="button" onclick="submitForm()">Submit</button>
+</form>
+
+<h2>Diff Result</h2>
+<div id="diffResult"></div>
+
+<script>
+    function diffStrings(original, modified) {
+        const originalDiff = [];
+        const modifiedDiff = [];
+        const maxLen = Math.max(original.length, modified.length);
+
+        for (let i = 0; i < maxLen; i++) {
+            if (original[i] === modified[i]) {
+                originalDiff.push(`<span class="match">${original[i] || ''}</span>`);
+                modifiedDiff.push(`<span class="match">${modified[i] || ''}</span>`);
+            } else {
+                if (original[i]) {
+                    originalDiff.push(`<span class="diff">${original[i]}</span>`);
+                }
+                if (modified[i]) {
+                    modifiedDiff.push(`<span class="diff">${modified[i]}</span>`);
+                }
+            }
+        }
+
+        return {
+            original: originalDiff.join(''),
+            modified: modifiedDiff.join('')
+        };
+    }
+
+    function formatDiffOutput(diff) {
+        // Create two lines, one for the original and one for the modified
+        const originalLine = `<div class="diff-line">${diff.original}</div>`;
+        const modifiedLine = `<div class="diff-line">${diff.modified}</div>`;
+
+        // Combine them into a single result
+        return `${originalLine}\n${modifiedLine}`;
+    }
+
+    function submitForm() {
+        const form = document.getElementById('dataForm');
+        const formData = new FormData(form);
+
+        fetch('http://localhost:8080/doit', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const userInput = document.getElementById('pattern').value;
+            const serverMatch = data.matches[0];
+
+            const diff = diffStrings(userInput, serverMatch);
+            const formattedDiff = formatDiffOutput(diff);
+            document.getElementById('diffResult').innerHTML = formattedDiff;
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+</script>
+</body>
+</html>
